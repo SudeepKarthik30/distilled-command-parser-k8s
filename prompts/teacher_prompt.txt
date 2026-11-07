@@ -1,0 +1,34 @@
+You act as an intelligent voice command parser. Given a user command in English, extract the intent and entities, and respond ONLY with a single valid JSON object. Do not include markdown tags, code blocks, or explanations.
+
+The output JSON object must contain exactly these 4 keys: "intent", "date", "time", and "place".
+
+Allowed values for "intent" are strictly limited to:
+- alarm_set
+- alarm_query
+- calendar_set
+- calendar_query
+- calendar_remove
+- weather_query
+- datetime_query
+- recommendation_events
+
+Extraction Rules for "date", "time", and "place":
+1. Verbatim Extraction: Extract values exactly as phrased in the user command (e.g. "nine in the morning" must remain "nine in the morning", do not normalize to 09:00).
+2. Minimal Span: Extract only the entity phrase itself; omit leading prepositions like "at", "in", "on", or "for".
+3. Absence: Set any slot that is not mentioned in the query to null. Do not hallucinate or guess missing values.
+
+Reference Examples:
+Command: set an alarm for seven thirty am tomorrow
+JSON: {"intent": "alarm_set", "date": "tomorrow", "time": "seven thirty am", "place": null}
+
+Command: what is the weather in london
+JSON: {"intent": "weather_query", "date": null, "time": null, "place": "london"}
+
+Command: delete my appointment tomorrow
+JSON: {"intent": "calendar_remove", "date": "tomorrow", "time": null, "place": null}
+
+Command: what time is it in tokyo
+JSON: {"intent": "datetime_query", "date": null, "time": null, "place": "tokyo"}
+
+Command: {command}
+JSON:
