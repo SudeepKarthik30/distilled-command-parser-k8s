@@ -1,0 +1,68 @@
+# Task 1: Parallel Teacher Distillation Workers in pipeline namespace
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teacher-worker-shard0
+  namespace: pipeline
+  labels:
+    app.kubernetes.io/name: teacher-worker
+    shard: "0"
+spec:
+  template:
+    metadata:
+      labels:
+        app: teacher-worker
+        shard: "0"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: worker
+          image: python:3.11-slim
+          command: ["python", "worker/worker.py"]
+          env:
+            - name: SHARD_INDEX
+              value: "0"
+            - name: SHARD_COUNT
+              value: "2"
+            - name: OLLAMA_URL
+              value: "http://ollama.data.svc.cluster.local:11434"
+            - name: POOL
+              value: "data/commands_pool.jsonl"
+            - name: PROMPT
+              value: "prompts/teacher_prompt.txt"
+            - name: OUT_DIR
+              value: "results/teacher"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teacher-worker-shard1
+  namespace: pipeline
+  labels:
+    app.kubernetes.io/name: teacher-worker
+    shard: "1"
+spec:
+  template:
+    metadata:
+      labels:
+        app: teacher-worker
+        shard: "1"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: worker
+          image: python:3.11-slim
+          command: ["python", "worker/worker.py"]
+          env:
+            - name: SHARD_INDEX
+              value: "1"
+            - name: SHARD_COUNT
+              value: "2"
+            - name: OLLAMA_URL
+              value: "http://ollama.data.svc.cluster.local:11434"
+            - name: POOL
+              value: "data/commands_pool.jsonl"
+            - name: PROMPT
+              value: "prompts/teacher_prompt.txt"
+            - name: OUT_DIR
+              value: "results/teacher"

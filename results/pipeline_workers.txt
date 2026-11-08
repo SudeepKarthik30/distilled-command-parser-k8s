@@ -1,0 +1,19 @@
+$ kubectl get jobs -n pipeline
+NAME                    COMPLETIONS   DURATION   AGE
+teacher-worker-shard0   1/1           48m        52m
+teacher-worker-shard1   1/1           46m        52m
+
+$ kubectl get pods -n pipeline -o wide
+NAME                          READY   STATUS      RESTARTS   AGE   IP           NODE
+teacher-worker-shard0-w8m2k   0/1     Completed   0          52m   10.42.0.42   k3d-cloudproj-server-0
+teacher-worker-shard1-p4x9n   0/1     Completed   0          52m   10.42.0.43   k3d-cloudproj-server-0
+
+$ kubectl logs -n pipeline job/teacher-worker-shard0 | tail -n 5
+2026-11-07 10:45:10,214 [INFO] Progress: [1475/1500] completed (C2950)
+2026-11-07 10:48:22,891 [INFO] Progress: [1500/1500] completed (C3000)
+2026-11-07 10:48:23,102 [INFO] Shard 0 finished. Total commands written: 1500 -> results/teacher/shard-0.jsonl
+
+$ kubectl logs -n pipeline job/teacher-worker-shard1 | tail -n 5
+2026-11-07 10:43:18,440 [INFO] Progress: [1475/1500] completed (C2951)
+2026-11-07 10:46:31,612 [INFO] Progress: [1500/1500] completed (C2999)
+2026-11-07 10:46:31,810 [INFO] Shard 1 finished. Total commands written: 1500 -> results/teacher/shard-1.jsonl

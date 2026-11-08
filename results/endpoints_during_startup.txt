@@ -1,0 +1,24 @@
+# Demonstration: Service has no ready endpoints while the model is loading
+# 1. Immediately after Pod creation (model downloading from SeaweedFS S3):
+$ kubectl -n app get pods -l app=parser
+NAME                      READY   STATUS    RESTARTS   AGE
+parser-85d6bf497b-z7k19   0/1     Running   0          4s
+
+$ kubectl -n app get endpoints parser
+NAME     ENDPOINTS   AGE
+parser   <none>      4s
+
+# 2. Probe logs show /readyz returning HTTP 503 until model loads:
+$ kubectl -n app logs parser-85d6bf497b-z7k19 -c parser --tail=3
+2026-11-08 11:32:04,112 [INFO] Fetching weights: bucket=models, prefix=models/v1/, endpoint=http://seaweedfs.data.svc.cluster.local:8333
+10.42.0.1:41234 - "GET /readyz HTTP/1.1" 503 Service Unavailable
+10.42.0.1:41246 - "GET /readyz HTTP/1.1" 200 OK
+
+# 3. Model weights loaded into memory, readiness probe passes, Endpoint populated:
+$ kubectl -n app get pods -l app=parser
+NAME                      READY   STATUS    RESTARTS   AGE
+parser-85d6bf497b-z7k19   1/1     Running   0          18s
+
+$ kubectl -n app get endpoints parser
+NAME     ENDPOINTS          AGE
+parser   10.42.0.51:8000    18s

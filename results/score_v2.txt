@@ -1,8 +1,8 @@
-json_validity 99.0
-intent_accuracy 75.0
-date_accuracy 69.0
-time_accuracy 82.0
-place_accuracy 57.0
-full_frame 19.0
+json_validity 98.0
+intent_accuracy 68.0
+date_accuracy 90.0
+time_accuracy 98.0
+place_accuracy 65.0
+full_frame 35.0
 examples 100
 missing_predictions 0

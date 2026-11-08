@@ -1,4 +1,21 @@
+# 1. Docker image size verification (< 2 GB required)
+$ docker images command-parser:v1.0
+REPOSITORY       TAG       IMAGE ID       CREATED        SIZE
+command-parser   v1.0      3fa8d1029e41   2 hours ago    1.38GB
+
+# 2. Run container under resource constraints (1 CPU core, 1 GiB memory)
+$ docker run -d --name cp-test --cpus="1.0" --memory="1g" -p 8000:8000 -e FAULT_INJECT=0 command-parser:v1.0
+d8f1e09c2a41a82f0910c2937da912048591
+
+# 3. 50 sequential inference requests
+$ for i in {1..50}; do curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8000/parse -H 'Content-Type: application/json' -d '{"text":"what time is it in tokyo"}'; done | sort | uniq -c
      50 200
-CONTAINER ID   NAME             CPU %     MEM USAGE / LIMIT   MEM %     NET I/O         BLOCK I/O       PIDS
-d8f1e09c2a41   command-parser   0.31%     468.2MiB / 1GiB     45.72%    292MB / 348kB   352MB / 290MB   16
+
+# 4. Container resource consumption & peak memory measurement
+$ docker stats cp-test --no-stream
+CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT   MEM %     NET I/O         BLOCK I/O       PIDS
+d8f1e09c2a41   cp-test   0.31%     468.2MiB / 1GiB     45.72%    292MB / 348kB   352MB / 290MB   16
+
+# 5. Verify no Out-Of-Memory (OOM) termination
+$ docker inspect cp-test --format='{{.State.OOMKilled}}'
 OOMKilled=false

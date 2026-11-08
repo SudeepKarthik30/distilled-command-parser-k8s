@@ -86,15 +86,9 @@ def main():
     logger.info(f"Loaded {len(records)} training records (subset={args.subset})")
 
     base_model_id = cfg["base_model"]
-    if os.path.exists("v1") and os.path.exists("v1/model.safetensors"):
-        logger.info("Initializing from local base model weights in './v1'")
-        tokenizer = AutoTokenizer.from_pretrained("v1")
-        tokenizer.pad_token = tokenizer.eos_token
-        student_model = AutoModelForCausalLM.from_pretrained("v1").float()
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(base_model_id)
-        tokenizer.pad_token = tokenizer.eos_token
-        student_model = AutoModelForCausalLM.from_pretrained(base_model_id).float()
+    tokenizer = AutoTokenizer.from_pretrained(base_model_id)
+    tokenizer.pad_token = tokenizer.eos_token
+    student_model = AutoModelForCausalLM.from_pretrained(base_model_id).float()
 
     dataset_encoder = DistillationDataset(tokenizer, max_len=cfg["max_len"])
     encoded_data = [dataset_encoder.encode_example(r) for r in records]
