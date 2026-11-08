@@ -1,0 +1,129 @@
+name: Continuous Integration & Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      use_base:
+        description: "Evaluate untrained Pythia-70M baseline (demonstrates gate failure)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-linting:
+    name: Lint & Style Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linting Tooling
+        run: pip install ruff
+
+      - name: Run Static Analysis Checks
+        run: ruff check service worker training tools tests --select E9,F63,F7,F82
+
+  unit-testing:
+    name: Execute Unit Test Suite
+    needs: code-linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Test Dependencies
+        run: pip install pytest pyyaml
+
+      - name: Run Test Harness
+        run: pytest -v tests
+
+  security-secret-scan:
+    name: Gitleaks Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Full Repository Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for Secret Leaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  model-evaluation:
+    name: Evaluate Distilled Model Artifacts
+    needs: unit-testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Inference Libraries
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers
+
+      - name: Retrieve Model Weights from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ inputs.use_base }}" = "true" ]; then
+            echo "MODEL_DIR=EleutherAI/pythia-70m" >> $GITHUB_ENV
+          else
+            gh release download v1.0 -p model_v1.zip --repo ${{ github.repository }}
+            unzip -q -o model_v1.zip -d model_v1
+            echo "MODEL_DIR=$(dirname $(find model_v1 -name config.json | head -1))" >> $GITHUB_ENV
+          fi
+
+      - name: Generate Predictions on Validation Set
+        run: python training/predict.py --model "$MODEL_DIR" --nr 8 --out predictions.jsonl
+
+      - name: Persist Prediction Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: predictions
+          path: predictions.jsonl
+
+  quality-gate:
+    name: Schema Quality Gate Check
+    needs: model-evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch Prediction Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: predictions
+
+      - name: Verify Minimum 95% JSON Validity
+        run: python tools/score.py predictions.jsonl data/validation.jsonl --out report.json --min-validity 95
