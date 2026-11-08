@@ -1,0 +1,4 @@
+Run 1: 8.2 s
+Run 2: 6.8 s
+Run 3: 7.1 s
+Median cold start: 7.1 s

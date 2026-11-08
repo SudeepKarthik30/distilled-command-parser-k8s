@@ -1,0 +1,5 @@
+2026-11-09 01:20:12,105 [INFO] Fetching weights: bucket=models, prefix=models/v1/, endpoint=http://seaweedfs.data.svc.cluster.local:8333
+2026-11-09 01:20:16,842 [INFO] Successfully downloaded 7 files to /tmp/model
+2026-11-09 01:20:17,210 [INFO] Model and tokenizer successfully initialized into memory.
+10.42.0.1:41234 - "GET /readyz HTTP/1.1" 503 Service Unavailable
+10.42.0.1:41246 - "GET /readyz HTTP/1.1" 200 OK
